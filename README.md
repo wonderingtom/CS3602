@@ -30,3 +30,4 @@ python scripts/BERT_history_test.py
 ```
 结果会保存在`data/prediction_BERT_history.json`当中。
 
+最好的预测结果在`data/prediction_BERT.json`中。
