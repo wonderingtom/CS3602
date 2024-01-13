@@ -26,6 +26,8 @@ sys.argv.append('--hidden_size')
 sys.argv.append('768')
 sys.argv.append('--lr')
 sys.argv.append('1e-5')
+sys.argv.append('--num_layer')
+sys.argv.append('1')
 # sys.argv.append('--testing')
 args = init_args(sys.argv[1:])
 set_random_seed(args.seed)
@@ -149,6 +151,9 @@ if not args.testing:
     optimizer, schduler = set_optimizer(model, args)
     nsamples, best_result = len(train_dataset), {'dev_acc': 0., 'dev_f1': 0.}
     print('Start training ......')
+    total_train_time = 0
+    total_dev_time = 0
+    total_dev_acc = []
     for i in range(args.max_epoch):
         start_time = time.time()
         epoch_loss = 0
@@ -163,7 +168,9 @@ if not args.testing:
             optimizer.step()
             optimizer.zero_grad()
             count += 1
-        print('Training: \tEpoch: %d\tTime: %.4f\tTraining Loss: %.4f' % (i, time.time() - start_time, epoch_loss / count))
+        train_time = time.time() - start_time
+        total_train_time += train_time
+        print('Training: \tEpoch: %d\tTime: %.4f\tTraining Loss: %.4f' % (i, train_time, epoch_loss / count))
         torch.cuda.empty_cache()
         gc.collect()
         schduler.step()
@@ -171,15 +178,23 @@ if not args.testing:
         start_time = time.time()
         metrics, dev_loss = decode('dev')
         dev_acc, dev_fscore = metrics['acc'], metrics['fscore']
-        print('Evaluation: \tEpoch: %d\tTime: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, time.time() - start_time, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
+        
+        total_dev_acc.append(dev_acc)
+        dev_time = time.time() - start_time
+        total_dev_time += dev_time
+        print('Evaluation: \tEpoch: %d\tTime: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, dev_time, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
         if dev_acc > best_result['dev_acc']:
             best_result['dev_loss'], best_result['dev_acc'], best_result['dev_f1'], best_result['iter'] = dev_loss, dev_acc, dev_fscore, i
             torch.save({
-                'epoch': i, 'model': model.state_dict(),
-                'optim': optimizer.state_dict(),
+                'model': model.state_dict(),
+                
             }, open('trained_models/BERT.bin', 'wb'))
             print('NEW BEST MODEL: \tEpoch: %d\tDev loss: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, dev_loss, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
-
+    file_path = "BERT.txt"
+    with open(file_path, "w") as file:
+        for item in total_dev_acc:
+            file.write("%s\n" % item)
+    print('TRAIN AVG TIME: %.4f\t, DEV AVG TIME: %.4f\t' %(total_train_time / args.max_epoch, total_dev_time / args.max_epoch))
     print('FINAL BEST RESULT: \tEpoch: %d\tDev loss: %.4f\tDev acc: %.4f\tDev fscore(p/r/f): (%.4f/%.4f/%.4f)' % (best_result['iter'], best_result['dev_loss'], best_result['dev_acc'], best_result['dev_f1']['precision'], best_result['dev_f1']['recall'], best_result['dev_f1']['fscore']))
 else:
     start_time = time.time()

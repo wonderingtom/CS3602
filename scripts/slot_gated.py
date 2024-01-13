@@ -12,6 +12,7 @@ from utils.example import Dataloader
 from utils.batch import from_example_list
 from utils.vocab import PAD
 from model.SlotGatedSLU import SlotGatedSLU
+from utils.vis import visualizer
 
 os.makedirs('trained_models', exist_ok=True)
 
@@ -27,7 +28,7 @@ start_time = time.time()
 train_path = os.path.join(args.dataroot, 'train.json')
 dev_path = os.path.join(args.dataroot, 'development.json')
 Dataloader.configuration(args.dataroot, train_path=train_path, word2vec_path=args.word2vec_path)
-train_dataset = Dataloader.load_dataset(train_path, train=True)
+train_dataset = Dataloader.load_dataset(train_path)
 dev_dataset = Dataloader.load_dataset(dev_path)
 print("Load dataset and database finished, cost %.4fs ..." % (time.time() - start_time))
 print("Dataset size: train -> %d ; dev -> %d" % (len(train_dataset), len(dev_dataset)))
@@ -108,6 +109,9 @@ if not args.testing:
     nsamples, best_result = len(train_dataset), {'dev_acc': 0., 'dev_f1': 0.}
     train_index, step_size = np.arange(nsamples), args.batch_size
     print('Start training ......')
+    total_train_time = 0
+    total_dev_time = 0
+    total_dev_acc = []
     for i in range(args.max_epoch):
         start_time = time.time()
         epoch_loss = 0
@@ -123,22 +127,32 @@ if not args.testing:
             optimizer.step()
             optimizer.zero_grad()
             count += 1
-        print('Training: \tEpoch: %d\tTime: %.4f\tTraining Loss: %.4f' % (i, time.time() - start_time, epoch_loss / count))
+        train_time = time.time() - start_time
+        total_train_time += train_time
+        print('Training: \tEpoch: %d\tTime: %.4f\tTraining Loss: %.4f' % (i, train_time, epoch_loss / count))
         torch.cuda.empty_cache()
         gc.collect()
 
         start_time = time.time()
         metrics, dev_loss = decode('dev')
         dev_acc, dev_fscore = metrics['acc'], metrics['fscore']
-        print('Evaluation: \tEpoch: %d\tTime: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, time.time() - start_time, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
+        total_dev_acc.append(dev_acc)
+        
+        dev_time = time.time() - start_time
+        total_dev_time += dev_time
+        print('Evaluation: \tEpoch: %d\tTime: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, dev_time, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
         if dev_acc > best_result['dev_acc']:
             best_result['dev_loss'], best_result['dev_acc'], best_result['dev_f1'], best_result['iter'] = dev_loss, dev_acc, dev_fscore, i
             torch.save({
-                'epoch': i, 'model': model.state_dict(),
-                'optim': optimizer.state_dict(),
+                 'model': model.state_dict(),
+                
             }, open(f'trained_models/slot_gated.bin', 'wb'))
             print('NEW BEST MODEL: \tEpoch: %d\tDev loss: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, dev_loss, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
-
+    file_path = "slot_gated.txt"
+    with open(file_path, "w") as file:
+        for item in total_dev_acc:
+            file.write("%s\n" % item)
+    print('TRAIN AVG TIME: %.4f\t, DEV AVG TIME: %.4f\t' %(total_train_time / args.max_epoch, total_dev_time / args.max_epoch))
     print('FINAL BEST RESULT: \tEpoch: %d\tDev loss: %.4f\tDev acc: %.4f\tDev fscore(p/r/f): (%.4f/%.4f/%.4f)' % (best_result['iter'], best_result['dev_loss'], best_result['dev_acc'], best_result['dev_f1']['precision'], best_result['dev_f1']['recall'], best_result['dev_f1']['fscore']))
 else:
     start_time = time.time()
