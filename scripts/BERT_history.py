@@ -17,6 +17,14 @@ from dataset.dataset import LabelVocab_history, get_dataset
 os.makedirs('trained_models', exist_ok=True)
 
 # initialization params, output path, logger, random seed and torch.device
+sys.argv.append('--hidden_size')
+sys.argv.append('128')
+sys.argv.append('--num_layer')
+sys.argv.append('1')
+sys.argv.append('--encoder_cell')
+sys.argv.append('GRU')
+# sys.argv.append('--lr')
+# sys.argv.append('1e-5')
 args = init_args(sys.argv[1:])
 set_random_seed(args.seed)
 device = set_torch_device(args.device)

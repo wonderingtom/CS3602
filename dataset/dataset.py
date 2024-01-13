@@ -10,7 +10,7 @@ from transformers import BertModel, BertTokenizer
 # from transformers import AutoTokenizer, AutoModel
 
 
-from utils.vocab import Label, LabelVocab
+from utils.vocab import Label, LabelVocab_history
 
 
 
@@ -25,7 +25,7 @@ class Sentence:
 class get_dataset(Dataset):
     pattern = re.compile(r'\(.*\)')
 
-    def __init__(self, data_path, label_converter: LabelVocab, dataset_path, args):
+    def __init__(self, data_path, label_converter: LabelVocab_history, dataset_path, args):
         self.device = torch.device("cuda:%d" % args.device)
         if os.path.isfile(dataset_path):
             self._data = torch.load(dataset_path, map_location=self.device)

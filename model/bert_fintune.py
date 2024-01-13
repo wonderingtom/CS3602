@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 from transformers import AutoModel
-from torchcrf import CRF
+from TorchCRF import CRF
 
 class BERT(nn.Module):
 

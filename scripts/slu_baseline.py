@@ -16,7 +16,6 @@ from model.slu_baseline_tagging import SLUTagging
 # initialization params, output path, logger, random seed and torch.device
 sys.argv.append('--device')
 sys.argv.append('0')
-sys.argv.append('--testing')
 args = init_args(sys.argv[1:])
 set_random_seed(args.seed)
 device = set_torch_device(args.device)

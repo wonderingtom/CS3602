@@ -144,8 +144,8 @@ if not args.testing:
         if dev_acc > best_result['dev_acc']:
             best_result['dev_loss'], best_result['dev_acc'], best_result['dev_f1'], best_result['iter'] = dev_loss, dev_acc, dev_fscore, i
             torch.save({
-                 'model': model.state_dict(),
-                
+                'epoch': i, 'model': model.state_dict(),
+                'optim': optimizer.state_dict(),
             }, open(f'trained_models/slot_gated.bin', 'wb'))
             print('NEW BEST MODEL: \tEpoch: %d\tDev loss: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, dev_loss, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
     file_path = "slot_gated.txt"

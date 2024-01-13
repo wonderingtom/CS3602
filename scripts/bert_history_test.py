@@ -18,7 +18,7 @@ print("Use GPU with index %s" % (args.device) if args.device >= 0 else "Use CPU 
 
 
 test_data_path = 'data/test_unlabelled.json'
-output_path = 'data/test_output.json'
+output_path = 'data/prediction_BERT_history.json'
 
 with open(test_data_path, encoding='utf-8') as f:
     test_data = json.load(f)
